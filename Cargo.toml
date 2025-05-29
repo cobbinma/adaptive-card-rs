@@ -8,7 +8,7 @@ homepage = "https://github.com/cobbinma/adaptive-card-rs"
 repository = "https://github.com/cobbinma/adaptive-card-rs"
 license = "MIT OR Apache-2.0"
 keywords = ["adaptive-cards", "json", "ui"]
-categories = ["data-serialization", "web-programming"]
+categories = ["development-tools", "web-programming"]
 readme = "README.md"
 exclude = ["/.github"]
 
