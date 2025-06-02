@@ -13,6 +13,16 @@ pub struct ActionSet {
 pub enum Action {
     #[serde(rename = "Action.OpenUrl")]
     OpenUrl(OpenUrlAction),
+    #[serde(rename = "Action.ToggleVisibility")]
+    ToggleVisibility(ToggleVisibilityAction),
+}
+
+// ToggleVisibility action
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToggleVisibilityAction {
+    pub title: Option<String>,
+    pub target_elements: Vec<String>,
 }
 
 // OpenUrl action

@@ -37,6 +37,6 @@ cargo add adaptive-card-rs
              is_subtle: Some(false),
          })
      ],
- ..Default::default()
+     ..Default::default()
  };
  ```

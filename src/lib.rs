@@ -22,7 +22,7 @@
 //!             is_subtle: Some(false),
 //!         })
 //!     ],
-//! ..Default::default()
+//!     ..Default::default()
 //! };
 //! assert_eq!(card.body.len(), 1);
 //! ```
