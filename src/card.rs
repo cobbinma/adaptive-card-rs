@@ -144,20 +144,17 @@ pub struct Fact {
 
 /// Represents the size of the text in a TextBlock element.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum TextSize {
-    /// Small text size.
     Small,
-    /// Default text size.
     Default,
-    /// Medium text size.
     Medium,
-    /// Large text size.
     Large,
-    /// Extra large text size.
     ExtraLarge,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum TextWeight {
     Lighter,
     Default,
@@ -165,14 +162,14 @@ pub enum TextWeight {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ContainerStyle {
-    #[serde(rename = "default")]
     Default,
-    #[serde(rename = "emphasis")]
     Emphasis,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Spacing {
     None,
     Small,
@@ -188,8 +185,8 @@ pub enum Spacing {
 pub enum ColumnWidth {
     Auto(String),    // "auto"
     Stretch(String), // "stretch"
-    Pixel(u32),      // pixel value
-    Weight(f32),     // weight value
+    Pixel(String),   // pixel value
+    Relative(u32),   // relative width value
 }
 
 // Helper functions for ColumnWidth
@@ -203,15 +200,16 @@ impl ColumnWidth {
     }
 
     pub fn pixels(px: u32) -> Self {
-        Self::Pixel(px)
+        Self::Pixel(format!("{}px", px))
     }
 
-    pub fn weight(w: f32) -> Self {
-        Self::Weight(w)
+    pub fn weight(w: u32) -> Self {
+        Self::Relative(w)
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ImageSize {
     Auto,
     Stretch,
@@ -222,9 +220,11 @@ pub enum ImageSize {
 
 #[cfg(test)]
 mod tests {
+    use crate::actions::{Action, OpenUrlAction};
+
     use super::*;
     use expect_test::expect;
-    use serde_json;
+    use serde_json::{self, Value};
 
     #[test]
     fn test_adaptive_card_serialization() {
@@ -253,6 +253,12 @@ mod tests {
                         is_subtle: Some(true),
                     })],
                 }),
+                CardElement::ActionSet(ActionSet {
+                    actions: vec![Action::OpenUrl(OpenUrlAction {
+                        title: "Open".to_string(),
+                        url: "https://www.youtube.com/watch?v=sBW8Vnp8BzU".to_string(),
+                    })],
+                }),
             ],
             ..Default::default()
         };
@@ -265,8 +271,8 @@ mod tests {
               "body": [
                 {
                   "type": "TextBlock",
-                  "size": "Large",
-                  "weight": "Bolder",
+                  "size": "large",
+                  "weight": "bolder",
                   "text": "Hello, Adaptive Card!",
                   "wrap": true,
                   "isSubtle": false
@@ -274,20 +280,30 @@ mod tests {
                 {
                   "type": "Image",
                   "url": "https://example.com/image.png",
-                  "size": "Medium"
+                  "size": "medium"
                 },
                 {
                   "type": "Container",
                   "style": "emphasis",
-                  "spacing": "Medium",
+                  "spacing": "medium",
                   "items": [
                     {
                       "type": "TextBlock",
-                      "size": "Default",
-                      "weight": "Default",
+                      "size": "default",
+                      "weight": "default",
                       "text": "Inside a container",
                       "wrap": true,
                       "isSubtle": true
+                    }
+                  ]
+                },
+                {
+                  "type": "ActionSet",
+                  "actions": [
+                    {
+                      "type": "Action.OpenUrl",
+                      "title": "Open",
+                      "url": "https://www.youtube.com/watch?v=sBW8Vnp8BzU"
                     }
                   ]
                 }
@@ -295,118 +311,142 @@ mod tests {
             }"#]];
 
         expected.assert_eq(&serde_json::to_string_pretty(&card).unwrap());
+
+        validate_card_against_schema(&card);
     }
 
     #[test]
     fn test_column_width_serialization() {
-        let column_set = ColumnSet {
-            columns: vec![
-                Column {
-                    width: ColumnWidth::auto(),
-                    items: vec![CardElement::TextBlock(TextBlock {
-                        size: Some(TextSize::Default),
-                        weight: Some(TextWeight::Default),
-                        text: "Auto width column".to_string(),
-                        wrap: Some(true),
-                        is_subtle: Some(false),
-                    })],
-                },
-                Column {
-                    width: ColumnWidth::stretch(),
-                    items: vec![CardElement::TextBlock(TextBlock {
-                        size: Some(TextSize::Default),
-                        weight: Some(TextWeight::Default),
-                        text: "Stretch width column".to_string(),
-                        wrap: Some(true),
-                        is_subtle: Some(false),
-                    })],
-                },
-                Column {
-                    width: ColumnWidth::pixels(200),
-                    items: vec![CardElement::TextBlock(TextBlock {
-                        size: Some(TextSize::Default),
-                        weight: Some(TextWeight::Default),
-                        text: "Pixel width column".to_string(),
-                        wrap: Some(true),
-                        is_subtle: Some(false),
-                    })],
-                },
-                Column {
-                    width: ColumnWidth::weight(2.0),
-                    items: vec![CardElement::TextBlock(TextBlock {
-                        size: Some(TextSize::Default),
-                        weight: Some(TextWeight::Default),
-                        text: "Weight width column".to_string(),
-                        wrap: Some(true),
-                        is_subtle: Some(false),
-                    })],
-                },
-            ],
+        let card = AdaptiveCard {
+            body: vec![CardElement::ColumnSet(ColumnSet {
+                columns: vec![
+                    Column {
+                        width: ColumnWidth::auto(),
+                        items: vec![CardElement::TextBlock(TextBlock {
+                            size: Some(TextSize::Default),
+                            weight: Some(TextWeight::Default),
+                            text: "Auto width column".to_string(),
+                            wrap: Some(true),
+                            is_subtle: Some(false),
+                        })],
+                    },
+                    Column {
+                        width: ColumnWidth::stretch(),
+                        items: vec![CardElement::TextBlock(TextBlock {
+                            size: Some(TextSize::Default),
+                            weight: Some(TextWeight::Default),
+                            text: "Stretch width column".to_string(),
+                            wrap: Some(true),
+                            is_subtle: Some(false),
+                        })],
+                    },
+                    Column {
+                        width: ColumnWidth::pixels(200),
+                        items: vec![CardElement::TextBlock(TextBlock {
+                            size: Some(TextSize::Default),
+                            weight: Some(TextWeight::Default),
+                            text: "Pixel width column".to_string(),
+                            wrap: Some(true),
+                            is_subtle: Some(false),
+                        })],
+                    },
+                    Column {
+                        width: ColumnWidth::weight(2),
+                        items: vec![CardElement::TextBlock(TextBlock {
+                            size: Some(TextSize::Default),
+                            weight: Some(TextWeight::Default),
+                            text: "Weight width column".to_string(),
+                            wrap: Some(true),
+                            is_subtle: Some(false),
+                        })],
+                    },
+                ],
+            })],
+            ..Default::default()
         };
 
         let expected = expect![[r#"
             {
-              "type": "ColumnSet",
-              "columns": [
+              "type": "AdaptiveCard",
+              "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+              "version": "1.2",
+              "body": [
                 {
-                  "type": "Column",
-                  "width": "auto",
-                  "items": [
+                  "type": "ColumnSet",
+                  "type": "ColumnSet",
+                  "columns": [
                     {
-                      "type": "TextBlock",
-                      "size": "Default",
-                      "weight": "Default",
-                      "text": "Auto width column",
-                      "wrap": true,
-                      "isSubtle": false
-                    }
-                  ]
-                },
-                {
-                  "type": "Column",
-                  "width": "stretch",
-                  "items": [
+                      "type": "Column",
+                      "width": "auto",
+                      "items": [
+                        {
+                          "type": "TextBlock",
+                          "size": "default",
+                          "weight": "default",
+                          "text": "Auto width column",
+                          "wrap": true,
+                          "isSubtle": false
+                        }
+                      ]
+                    },
                     {
-                      "type": "TextBlock",
-                      "size": "Default",
-                      "weight": "Default",
-                      "text": "Stretch width column",
-                      "wrap": true,
-                      "isSubtle": false
-                    }
-                  ]
-                },
-                {
-                  "type": "Column",
-                  "width": 200,
-                  "items": [
+                      "type": "Column",
+                      "width": "stretch",
+                      "items": [
+                        {
+                          "type": "TextBlock",
+                          "size": "default",
+                          "weight": "default",
+                          "text": "Stretch width column",
+                          "wrap": true,
+                          "isSubtle": false
+                        }
+                      ]
+                    },
                     {
-                      "type": "TextBlock",
-                      "size": "Default",
-                      "weight": "Default",
-                      "text": "Pixel width column",
-                      "wrap": true,
-                      "isSubtle": false
-                    }
-                  ]
-                },
-                {
-                  "type": "Column",
-                  "width": 2.0,
-                  "items": [
+                      "type": "Column",
+                      "width": "200px",
+                      "items": [
+                        {
+                          "type": "TextBlock",
+                          "size": "default",
+                          "weight": "default",
+                          "text": "Pixel width column",
+                          "wrap": true,
+                          "isSubtle": false
+                        }
+                      ]
+                    },
                     {
-                      "type": "TextBlock",
-                      "size": "Default",
-                      "weight": "Default",
-                      "text": "Weight width column",
-                      "wrap": true,
-                      "isSubtle": false
+                      "type": "Column",
+                      "width": 2,
+                      "items": [
+                        {
+                          "type": "TextBlock",
+                          "size": "default",
+                          "weight": "default",
+                          "text": "Weight width column",
+                          "wrap": true,
+                          "isSubtle": false
+                        }
+                      ]
                     }
                   ]
                 }
               ]
             }"#]];
 
-        expected.assert_eq(&serde_json::to_string_pretty(&column_set).unwrap());
+        expected.assert_eq(&serde_json::to_string_pretty(&card).unwrap());
+
+        validate_card_against_schema(&card);
+    }
+
+    fn validate_card_against_schema(card: &AdaptiveCard) {
+        lazy_static::lazy_static! {
+            static ref SCHEMA_CONTENT: Value = serde_json::from_str(include_str!("../schema.json")).unwrap();
+        }
+        let validator = jsonschema::validator_for(&SCHEMA_CONTENT).unwrap();
+
+        assert!(validator.is_valid(&serde_json::to_value(card).unwrap()));
     }
 }
