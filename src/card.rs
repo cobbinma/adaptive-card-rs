@@ -32,6 +32,9 @@ pub struct AdaptiveCard {
     pub version: Version,
     /// The body of the Adaptive Card, containing a collection of card elements.
     pub body: Vec<CardElement>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub msteams: Option<MsTeams>,
 }
 
 impl Default for AdaptiveCard {
@@ -40,6 +43,7 @@ impl Default for AdaptiveCard {
             schema: "http://adaptivecards.io/schemas/adaptive-card.json".to_string(),
             version: Version::V1_2,
             body: Vec::new(),
+            msteams: None,
         }
     }
 }
@@ -94,6 +98,21 @@ pub struct Container {
     pub spacing: Option<Spacing>,
     /// The card elements contained within this container.
     pub items: Vec<CardElement>,
+}
+
+/// Represents the available width values for Microsoft Teams Adaptive Cards.
+/// https://docs.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-format#full-width-adaptive-card
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MsTeamsWidth {
+    Full,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MsTeams {
+    /// The width of the card in Microsoft Teams (currently only supports "full").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<MsTeamsWidth>,
 }
 
 // ColumnSet element
@@ -313,6 +332,33 @@ mod tests {
         expected.assert_eq(&serde_json::to_string_pretty(&card).unwrap());
 
         validate_card_against_schema(&card);
+    }
+
+    #[test]
+    fn test_adaptive_card_microsift_teams_serialization() {
+        let card = AdaptiveCard {
+            version: Version::V1_6,
+            msteams: Some(MsTeams {
+                width: Some(MsTeamsWidth::Full),
+            }),
+            ..Default::default()
+        };
+
+        let expected = expect![[r#"
+            {
+              "type": "AdaptiveCard",
+              "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+              "version": "1.6",
+              "body": [],
+              "msteams": {
+                "width": "Full"
+              }
+            }"#]];
+
+        expected.assert_eq(&serde_json::to_string_pretty(&card).unwrap());
+
+        // NOTE: https://github.com/microsoft/AdaptiveCards/issues/8603
+        // validate_card_against_schema(&card);
     }
 
     #[test]
