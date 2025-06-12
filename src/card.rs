@@ -103,6 +103,7 @@ pub struct Container {
 /// Represents the available width values for Microsoft Teams Adaptive Cards.
 /// https://docs.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-format#full-width-adaptive-card
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum MsTeamsWidth {
     Full,
 }
@@ -351,7 +352,7 @@ mod tests {
               "version": "1.6",
               "body": [],
               "msteams": {
-                "width": "Full"
+                "width": "full"
               }
             }"#]];
 
