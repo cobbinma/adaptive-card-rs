@@ -202,29 +202,45 @@ pub enum Spacing {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum ColumnWidth {
+pub enum ColumnWidthKind {
     Auto(String),    // "auto"
     Stretch(String), // "stretch"
     Pixel(String),   // pixel value
     Relative(u32),   // relative width value
 }
 
+/// Represents the width of a column, offering predefined constructors.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ColumnWidth {
+    // The `kind` field is private, encapsulating the inner enum.
+    kind: ColumnWidthKind,
+}
+
 // Helper functions for ColumnWidth
 impl ColumnWidth {
     pub fn auto() -> Self {
-        Self::Auto("auto".to_string())
+        Self {
+            kind: ColumnWidthKind::Auto("auto".to_string()),
+        }
     }
 
     pub fn stretch() -> Self {
-        Self::Stretch("stretch".to_string())
+        Self {
+            kind: ColumnWidthKind::Auto("stretch".to_string()),
+        }
     }
 
     pub fn pixels(px: u32) -> Self {
-        Self::Pixel(format!("{}px", px))
+        Self {
+            kind: ColumnWidthKind::Auto(format!("{}px", px)),
+        }
     }
 
     pub fn weight(w: u32) -> Self {
-        Self::Relative(w)
+        Self {
+            kind: ColumnWidthKind::Relative(w),
+        }
     }
 }
 
@@ -489,16 +505,18 @@ mod tests {
     }
 
     fn validate_card_against_schema(card: &AdaptiveCard) {
-        use std::sync::OnceLock;
         use std::io::Read;
+        use std::sync::OnceLock;
 
         static SCHEMA_CONTENT: OnceLock<Value> = OnceLock::new();
 
         let schema = SCHEMA_CONTENT.get_or_init(|| {
-            let mut resp = reqwest::blocking::get("http://adaptivecards.io/schemas/adaptive-card.json")
-                .expect("Failed to fetch schema");
+            let mut resp =
+                reqwest::blocking::get("http://adaptivecards.io/schemas/adaptive-card.json")
+                    .expect("Failed to fetch schema");
             let mut content = String::new();
-            resp.read_to_string(&mut content).expect("Failed to read schema response");
+            resp.read_to_string(&mut content)
+                .expect("Failed to read schema response");
             serde_json::from_str(&content).expect("Failed to parse schema JSON")
         });
         let validator = jsonschema::validator_for(schema).unwrap();
