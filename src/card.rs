@@ -32,7 +32,7 @@ pub struct AdaptiveCard {
     pub version: Version,
     /// The body of the Adaptive Card, containing a collection of card elements.
     pub body: Vec<CardElement>,
-
+    /// Microsoft Teams-specific properties for the Adaptive Card.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub msteams: Option<MsTeams>,
 }
@@ -489,11 +489,19 @@ mod tests {
     }
 
     fn validate_card_against_schema(card: &AdaptiveCard) {
-        lazy_static::lazy_static! {
-            static ref SCHEMA_CONTENT: Value = serde_json::from_str(include_str!("../schema.json")).unwrap();
-        }
-        let validator = jsonschema::validator_for(&SCHEMA_CONTENT).unwrap();
+        use std::sync::OnceLock;
+        use std::io::Read;
 
+        static SCHEMA_CONTENT: OnceLock<Value> = OnceLock::new();
+
+        let schema = SCHEMA_CONTENT.get_or_init(|| {
+            let mut resp = reqwest::blocking::get("http://adaptivecards.io/schemas/adaptive-card.json")
+                .expect("Failed to fetch schema");
+            let mut content = String::new();
+            resp.read_to_string(&mut content).expect("Failed to read schema response");
+            serde_json::from_str(&content).expect("Failed to parse schema JSON")
+        });
+        let validator = jsonschema::validator_for(schema).unwrap();
         assert!(validator.is_valid(&serde_json::to_value(card).unwrap()));
     }
 }
