@@ -20,6 +20,7 @@
 //!             text: "Hello, Adaptive Card!".to_string(),
 //!             wrap: Some(true),
 //!             is_subtle: Some(false),
+//!             ..Default::default()
 //!         })
 //!     ],
 //!     ..Default::default()
@@ -28,3 +29,5 @@
 //! ```
 pub mod actions;
 pub mod card;
+pub mod common;
+pub mod inputs;

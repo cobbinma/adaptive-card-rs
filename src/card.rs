@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::actions::ActionSet;
+use crate::actions::{Action, ActionSet};
+use crate::common::{Color, FontType, Height, HorizontalAlignment, VerticalContentAlignment};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Version {
@@ -35,6 +36,27 @@ pub struct AdaptiveCard {
     /// Microsoft Teams-specific properties for the Adaptive Card.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub msteams: Option<MsTeams>,
+    /// The Actions to show in the card's action bar.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actions: Option<Vec<Action>>,
+    /// An Action that will be invoked when the card is tapped or selected. Action.ShowCard is not supported.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub select_action: Option<Box<Action>>,
+    /// Text shown when the client doesn't support the version specified (may contain markdown).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fallback_text: Option<String>,
+    /// Specifies the minimum height of the card.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_height: Option<String>,
+    /// Defines how the content should be aligned vertically within the container.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vertical_content_alignment: Option<VerticalContentAlignment>,
+    /// When true, content in this Adaptive Card should be presented right to left.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rtl: Option<bool>,
+    /// The 2-letter ISO-639-1 language used in the card. Used to localize any date/time functions.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
 }
 
 impl Default for AdaptiveCard {
@@ -44,6 +66,13 @@ impl Default for AdaptiveCard {
             version: Version::V1_2,
             body: Vec::new(),
             msteams: None,
+            actions: None,
+            select_action: None,
+            fallback_text: None,
+            min_height: None,
+            vertical_content_alignment: None,
+            rtl: None,
+            lang: None,
         }
     }
 }
@@ -64,40 +93,111 @@ pub enum CardElement {
     ActionSet(ActionSet),
     /// A fact set element that groups a collection of facts together.
     FactSet(FactSet),
+    /// A rich text block element that displays formatted text with inline elements.
+    RichTextBlock(RichTextBlock),
+    /// An input element that allows text entry.
+    #[serde(rename = "Input.Text")]
+    InputText(crate::inputs::InputText),
+    /// An input element that allows number entry.
+    #[serde(rename = "Input.Number")]
+    InputNumber(crate::inputs::InputNumber),
+    /// An input element that allows date selection.
+    #[serde(rename = "Input.Date")]
+    InputDate(crate::inputs::InputDate),
+    /// An input element that allows time selection.
+    #[serde(rename = "Input.Time")]
+    InputTime(crate::inputs::InputTime),
+    /// An input element that allows toggle/checkbox selection.
+    #[serde(rename = "Input.Toggle")]
+    InputToggle(crate::inputs::InputToggle),
+    /// An input element that allows choice selection.
+    #[serde(rename = "Input.ChoiceSet")]
+    InputChoiceSet(crate::inputs::InputChoiceSet),
 }
 
 /// Represents a text block element in an Adaptive Card.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TextBlock {
+    /// The text content to display.
+    pub text: String,
     /// The size of the text.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<TextSize>,
     /// The weight of the text.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub weight: Option<TextWeight>,
-    /// The text content to display.
-    pub text: String,
     /// Whether the text should wrap if it exceeds the available space.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wrap: Option<bool>,
     /// Whether the text should be displayed subtly.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_subtle: Option<bool>,
+    /// Controls the color of the text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
+    /// Controls the horizontal text alignment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub horizontal_alignment: Option<HorizontalAlignment>,
+    /// Specifies the maximum number of lines to display.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_lines: Option<u32>,
+    /// Type of font to use for rendering.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub font_type: Option<FontType>,
+    /// A unique identifier associated with the item.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// When true, draw a separating line at the top of the element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub separator: Option<bool>,
+    /// Controls the amount of spacing between this element and the preceding element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spacing: Option<Spacing>,
+    /// Specifies the height of the element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<Height>,
+    /// If false, this item will be removed from the visual tree.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_visible: Option<bool>,
 }
 
 /// Represents a container element that groups other card elements together.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Container {
+    /// The card elements contained within this container.
+    pub items: Vec<CardElement>,
     /// The style of the container.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style: Option<ContainerStyle>,
     /// The spacing around the container.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spacing: Option<Spacing>,
-    /// The card elements contained within this container.
-    pub items: Vec<CardElement>,
+    /// An Action that will be invoked when the container is tapped or selected.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub select_action: Option<Box<Action>>,
+    /// Defines how the content should be aligned vertically within the container.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vertical_content_alignment: Option<VerticalContentAlignment>,
+    /// Determines whether the element should bleed through its parent's padding.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bleed: Option<bool>,
+    /// Specifies the minimum height of the container.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_height: Option<String>,
+    /// A unique identifier associated with the item.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// When true, draw a separating line at the top of the element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub separator: Option<bool>,
+    /// Specifies the height of the element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<Height>,
+    /// If false, this item will be removed from the visual tree.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_visible: Option<bool>,
 }
 
 /// Represents the available width values for Microsoft Teams Adaptive Cards.
@@ -132,7 +232,7 @@ pub struct Column {
 }
 
 /// Represents an image element in an Adaptive Card.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Image {
     /// The URL of the image.
@@ -140,6 +240,36 @@ pub struct Image {
     /// The size of the image.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<ImageSize>,
+    /// Alternative text describing the image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alt_text: Option<String>,
+    /// Applies a background to a transparent image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background_color: Option<String>,
+    /// Controls the horizontal alignment of the image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub horizontal_alignment: Option<HorizontalAlignment>,
+    /// An Action that will be invoked when the image is clicked.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub select_action: Option<Box<Action>>,
+    /// The desired width of the image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<String>,
+    /// A unique identifier associated with the item.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// When true, draw a separating line at the top of the element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub separator: Option<bool>,
+    /// Controls the amount of spacing between this element and the preceding element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spacing: Option<Spacing>,
+    /// Specifies the height of the element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<Height>,
+    /// If false, this item will be removed from the visual tree.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_visible: Option<bool>,
 }
 
 /// Represents a fact set element in an Adaptive Card.
@@ -160,6 +290,77 @@ pub struct Fact {
     pub title: String,
     /// The value of the fact, typically displayed as the value associated with the key.
     pub value: String,
+}
+
+/// Defines an array of inlines, allowing for inline text formatting.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RichTextBlock {
+    /// The array of inline elements.
+    pub inlines: Vec<Inline>,
+    /// Controls the horizontal text alignment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub horizontal_alignment: Option<HorizontalAlignment>,
+    /// A unique identifier associated with the item.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// When true, draw a separating line at the top of the element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub separator: Option<bool>,
+    /// Controls the amount of spacing between this element and the preceding element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spacing: Option<Spacing>,
+    /// Specifies the height of the element.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<Height>,
+    /// If false, this item will be removed from the visual tree.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_visible: Option<bool>,
+}
+
+/// Inline element that can be either a string or a TextRun.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Inline {
+    /// Plain text string.
+    Text(String),
+    /// Formatted text run with styling.
+    TextRun(TextRun),
+}
+
+/// Represents a text run with inline formatting.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextRun {
+    /// Must be "TextRun".
+    #[serde(rename = "type")]
+    pub type_field: String,
+    /// The text to display.
+    pub text: String,
+    /// Controls the color of the text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
+    /// Type of font to use for rendering.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub font_type: Option<FontType>,
+    /// If true, displays the text highlighted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub highlight: Option<bool>,
+    /// If true, displays text slightly toned down to appear less prominent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_subtle: Option<bool>,
+    /// If true, displays the text using italic font.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub italic: Option<bool>,
+    /// Controls size of text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<TextSize>,
+    /// If true, displays the text with strikethrough.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strikethrough: Option<bool>,
+    /// Controls the weight of the text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub weight: Option<TextWeight>,
 }
 
 /// Represents the size of the text in a TextBlock element.
@@ -186,6 +387,10 @@ pub enum TextWeight {
 pub enum ContainerStyle {
     Default,
     Emphasis,
+    Good,
+    Attention,
+    Warning,
+    Accent,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -273,10 +478,12 @@ mod tests {
                     text: "Hello, Adaptive Card!".to_string(),
                     wrap: Some(true),
                     is_subtle: Some(false),
+                    ..Default::default()
                 }),
                 CardElement::Image(Image {
                     url: "https://example.com/image.png".to_string(),
                     size: Some(ImageSize::Medium),
+                    ..Default::default()
                 }),
                 CardElement::Container(Container {
                     style: Some(ContainerStyle::Emphasis),
@@ -287,12 +494,20 @@ mod tests {
                         text: "Inside a container".to_string(),
                         wrap: Some(true),
                         is_subtle: Some(true),
+                        ..Default::default()
                     })],
+                    ..Default::default()
                 }),
                 CardElement::ActionSet(ActionSet {
                     actions: vec![Action::OpenUrl(OpenUrlAction {
-                        title: "Open".to_string(),
+                        title: Some("Open".to_string()),
                         url: "https://www.youtube.com/watch?v=sBW8Vnp8BzU".to_string(),
+                        id: None,
+                        icon_url: None,
+                        style: None,
+                        tooltip: None,
+                        is_enabled: None,
+                        mode: None,
                     })],
                 }),
             ],
@@ -307,9 +522,9 @@ mod tests {
               "body": [
                 {
                   "type": "TextBlock",
+                  "text": "Hello, Adaptive Card!",
                   "size": "large",
                   "weight": "bolder",
-                  "text": "Hello, Adaptive Card!",
                   "wrap": true,
                   "isSubtle": false
                 },
@@ -320,18 +535,18 @@ mod tests {
                 },
                 {
                   "type": "Container",
-                  "style": "emphasis",
-                  "spacing": "medium",
                   "items": [
                     {
                       "type": "TextBlock",
+                      "text": "Inside a container",
                       "size": "default",
                       "weight": "default",
-                      "text": "Inside a container",
                       "wrap": true,
                       "isSubtle": true
                     }
-                  ]
+                  ],
+                  "style": "emphasis",
+                  "spacing": "medium"
                 },
                 {
                   "type": "ActionSet",
@@ -391,6 +606,7 @@ mod tests {
                             text: "Auto width column".to_string(),
                             wrap: Some(true),
                             is_subtle: Some(false),
+                            ..Default::default()
                         })],
                     },
                     Column {
@@ -401,6 +617,7 @@ mod tests {
                             text: "Stretch width column".to_string(),
                             wrap: Some(true),
                             is_subtle: Some(false),
+                            ..Default::default()
                         })],
                     },
                     Column {
@@ -411,6 +628,7 @@ mod tests {
                             text: "Pixel width column".to_string(),
                             wrap: Some(true),
                             is_subtle: Some(false),
+                            ..Default::default()
                         })],
                     },
                     Column {
@@ -421,6 +639,7 @@ mod tests {
                             text: "Weight width column".to_string(),
                             wrap: Some(true),
                             is_subtle: Some(false),
+                            ..Default::default()
                         })],
                     },
                 ],
@@ -444,9 +663,9 @@ mod tests {
                       "items": [
                         {
                           "type": "TextBlock",
+                          "text": "Auto width column",
                           "size": "default",
                           "weight": "default",
-                          "text": "Auto width column",
                           "wrap": true,
                           "isSubtle": false
                         }
@@ -458,9 +677,9 @@ mod tests {
                       "items": [
                         {
                           "type": "TextBlock",
+                          "text": "Stretch width column",
                           "size": "default",
                           "weight": "default",
-                          "text": "Stretch width column",
                           "wrap": true,
                           "isSubtle": false
                         }
@@ -472,9 +691,9 @@ mod tests {
                       "items": [
                         {
                           "type": "TextBlock",
+                          "text": "Pixel width column",
                           "size": "default",
                           "weight": "default",
-                          "text": "Pixel width column",
                           "wrap": true,
                           "isSubtle": false
                         }
@@ -486,9 +705,9 @@ mod tests {
                       "items": [
                         {
                           "type": "TextBlock",
+                          "text": "Weight width column",
                           "size": "default",
                           "weight": "default",
-                          "text": "Weight width column",
                           "wrap": true,
                           "isSubtle": false
                         }
